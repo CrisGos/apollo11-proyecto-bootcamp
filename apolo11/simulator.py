@@ -11,38 +11,48 @@ from apolo11.base.log import logClass
 from apolo11.configs import constants
 
 
-# Crear remoto y relacionarlos
+# Decorador para el registro de eventos
+def log_event(func):
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        args[0].logger.info(f"Event: {func.__name__}")
+        return result
+
+    return wrapper
 
 
-class Apolo11Simulator(logClass):
+# Clase base abstracta para la gestión de archivos
+class FileManager:
     def __init__(self, ruta_preferencia: str):
-        self.carpeta = 1  # VERIFICAR!!!
-        self.logger.info("Initializing...")  # info para el logger
         self.ruta_preferencia = pathlib.Path(ruta_preferencia)
         self.ruta_devices = os.path.join(ruta_preferencia, "devices")
         self.ruta_backups = os.path.join(ruta_preferencia, "backups")
 
-        # Create files if not exist
         if not os.path.exists(self.ruta_devices):
             os.makedirs(self.ruta_devices)
         if not os.path.exists(self.ruta_backups):
             os.makedirs(self.ruta_backups)
 
-    def ejecutar_simulacion(self):
-        while True:
-            self.simular_datos(
-                random.choice(constants.cantidad_archivos)
-            )  # Pasar cantidad_archivos como parámetro
-            self.generar_reportes()
-            self.limpiar_archivos_procesados()
-            self.generar_tablero_de_control()
-            time.sleep(
-                constants.tiempo_iteracion
-            )  # Esperar 20 segundos entre simulaciones
+    @log_event
+    def limpiar_archivos_procesados(self):
+        fecha_archivo = str(datetime.datetime.now().strftime("%d%m%y%H%M%S"))
+        self.ruta_destino = os.path.join(self.ruta_backups, fecha_archivo)
+        os.makedirs(self.ruta_destino, exist_ok=True)
+        archivos_procesados = os.listdir(self.ruta_devices)
+        for archivo in archivos_procesados:
+            ruta_archivo_origen = os.path.join(self.ruta_devices, archivo)
+            ruta_archivo_destino = os.path.join(self.ruta_destino, archivo)
+            shutil.move(ruta_archivo_origen, ruta_archivo_destino)
 
+
+# Subclase específica para la gestión de archivos de dispositivos
+class DeviceFileManager(FileManager):
+    def __init__(self, ruta_preferencia: str):
+        super().__init__(ruta_preferencia)
+
+    @log_event
     def simular_datos(self, cantidad_archivos: int):
         for _ in range(cantidad_archivos):
-            self.logger.info(cantidad_archivos)
             nombre_mision = random.choice(constants.proyectos)
             fecha = datetime.datetime.now().strftime("%d%m%y%H%M%S")
             tipo_dispositivo = random.choice(constants.lista_dispositivos)
@@ -51,26 +61,12 @@ class Apolo11Simulator(logClass):
                 fecha, nombre_mision, tipo_dispositivo, estado_dispositivo
             )
             i = 1
-            # date_directory = str(datetime.datetime.now().strftime("%d%m%y%H%M%S"))
-            # ruta_archivo = os.path.join(self.ruta_devices, date_directory)
             while True:
                 nombre_archivo = f"APL{nombre_mision}-0000[{i}].log"
                 ruta_archivo = os.path.join(self.ruta_devices, nombre_archivo)
                 if not os.path.exists(ruta_archivo):
                     break
                 i += 1
-            """
-            while True:
-                nombre_archivo = f"APL{nombre_mision}-0000[{i}].log"
-                ruta_archivo = os.path.join(self.ruta_devices, nombre_archivo)
-                date_directory = str(datetime.datetime.now().strftime("%d%m%y%H%M%S"))
-                directory = os.path.join(self.ruta_devices, date_directory)
-                path_save = os.path.join(directory, nombre_archivo)
-                os.mkdir(path_save)
-                if not os.path.exists(path_save):
-                    break
-                i += 1
-                """
 
             with open(ruta_archivo, "w") as archivo:
                 archivo.write(f"fecha:{fecha}\n")
@@ -79,8 +75,9 @@ class Apolo11Simulator(logClass):
                 archivo.write(f"estado_dispositivo:{estado_dispositivo}\n")
                 archivo.write(f"hash:{hash_calculado}\n")
 
+    @staticmethod
     def calcular_hash(
-        self, fecha: str, mision: str, tipo_dispositivo: str, estado_dispositivo: str
+        fecha: str, mision: str, tipo_dispositivo: str, estado_dispositivo: str
     ):
         if mision != "UNKN":
             datos_para_hash = (
@@ -89,21 +86,19 @@ class Apolo11Simulator(logClass):
             return hashlib.sha256(datos_para_hash).hexdigest()
         return ""
 
+    @log_event
     def generar_reportes(self):
         reporte_eventos = self.analizar_eventos()
         reporte_desconexiones = self.gestionar_desconexiones()
 
-        # Crear DataFrames a partir de los reportes
         df_eventos = pd.DataFrame(reporte_eventos)
         df_desconexiones = pd.DataFrame(reporte_desconexiones)
 
-        # Imprimir los DataFrames
         print("Reporte de Eventos:")
         print(df_eventos)
         print("\nReporte de Desconexiones:")
         print(df_desconexiones)
 
-        # Guardar reportes en archivos JSON
         with open(
             os.path.join(self.ruta_devices, "reporte_eventos.json"), "w"
         ) as archivo:
@@ -113,6 +108,22 @@ class Apolo11Simulator(logClass):
             os.path.join(self.ruta_devices, "reporte_desconexiones.json"), "w"
         ) as archivo:
             json.dump(reporte_desconexiones, archivo)
+
+    @log_event
+    def generar_tablero_de_control(self):
+        reporte_eventos = self.analizar_eventos()
+        reporte_desconexiones = self.gestionar_desconexiones()
+
+        tablero_de_control = {
+            "reporte_eventos": reporte_eventos,
+            "reporte_desconexiones": reporte_desconexiones,
+        }
+
+        ruta_tablero_control = os.path.join(
+            self.ruta_backups, "tablero_de_control.json"
+        )
+        with open(ruta_tablero_control, "w") as archivo:
+            json.dump(tablero_de_control, archivo)
 
     def analizar_eventos(self):
         archivos_dispositivos = os.listdir(self.ruta_devices)
@@ -155,34 +166,27 @@ class Apolo11Simulator(logClass):
 
         return desconexiones
 
-    def limpiar_archivos_procesados(self):
-        fecha_archivo = str(datetime.datetime.now().strftime("%d%m%y%H%M%S"))
-        self.ruta_destino = os.path.join(self.ruta_backups, fecha_archivo)
-        os.makedirs(self.ruta_destino, exist_ok=True)
-        """ archivos_procesados = [
-            archivo
-            for archivo in os.listdir(self.ruta_devices)
-            if archivo.endswith(".log")
-            ] """
-        archivos_procesados = os.listdir(self.ruta_devices)
-        for archivo in archivos_procesados:
-            ruta_archivo_origen = os.path.join(self.ruta_devices, archivo)
-            ruta_archivo_destino = os.path.join(self.ruta_destino, archivo)
-            # if os.path.exists(ruta_archivo_destino):
-            #   continue
-            shutil.move(ruta_archivo_origen, ruta_archivo_destino)
 
-    def generar_tablero_de_control(self):
-        reporte_eventos = self.analizar_eventos()
-        reporte_desconexiones = self.gestionar_desconexiones()
+# Clase principal
+class Apolo11Simulator(DeviceFileManager, logClass):
+    def __init__(self, ruta_preferencia: str):
+        super().__init__(ruta_preferencia)
+        self.logger.info("Initializing...")
 
-        tablero_de_control = {
-            "reporte_eventos": reporte_eventos,
-            "reporte_desconexiones": reporte_desconexiones,
-        }
+    def ejecutar_simulacion(self):
+        while True:
+            self.simular_datos(random.choice(constants.cantidad_archivos))
+            self.generar_reportes()
+            self.limpiar_archivos_procesados()
+            self.generar_tablero_de_control()
+            time.sleep(constants.tiempo_iteracion)
 
-        ruta_tablero_control = os.path.join(
-            self.ruta_backups, "tablero_de_control.json"
-        )
-        with open(ruta_tablero_control, "w") as archivo:
-            json.dump(tablero_de_control, archivo)
+
+# Función principal
+def main():
+    instancia = Apolo11Simulator("./simulation")
+    instancia.ejecutar_simulacion()
+
+
+if __name__ == "__main__":
+    main()
