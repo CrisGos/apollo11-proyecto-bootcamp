@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "apolo11"
+version = "0.1.0"
+description = ""
+authors = ["Cristian Ortega <cristianortega9509@gmail.com>"]
+readme = "README.md"
+
+packages = [
+    { include = "apolo11" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pandas = "^2.2.0"
+datetime = "^5.4"
+pytest-cov = "^4.1.0"
+
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.0.0"
+mypy = "^1.8.0"
+pytest = "^7.4.4"
+pylint = "^3.0.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+apolo11 = 'apolo11.__main__:main'
