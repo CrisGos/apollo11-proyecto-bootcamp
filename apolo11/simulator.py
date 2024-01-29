@@ -13,13 +13,18 @@ from apolo11.configs import constants
 
 # Event Logger Decorator
 def log_event(func):
-    """This function defines within a decorator the process that the code is undergoing in order to present it to the user.
+    """Decorator to log events.
 
-    :param func: _description_
-    :type func: _type_
+    :param func: The function to be decorated.
+    :type func: function
     """
 
     def wrapper(*args, **kwargs):
+        """Wrapper function to log events.
+
+        :return: The result of the decorated function.
+        :rtype: Any
+        """
         result = func(*args, **kwargs)
         args[0].logger.info(f"Event: {func.__name__}")
         return result
@@ -27,9 +32,20 @@ def log_event(func):
     return wrapper
 
 
-# Clase base abstracta para la gestión de archivos
+# Class for file management
 class FileManager(logClass):
+    """Manages file operations.
+
+    :param logClass: Class providing logging functionality.
+    :type logClass: class
+    """
+
     def __init__(self, ruta_preferencia: str):
+        """Initializes FileManager with the preferred path
+
+        :param ruta_preferencia: The preferred path.
+        :type ruta_preferencia: str
+        """
         self.ruta_preferencia = pathlib.Path(ruta_preferencia)
         self.ruta_devices = os.path.join(ruta_preferencia, "devices")
         self.ruta_backups = os.path.join(ruta_preferencia, "backups")
@@ -41,6 +57,10 @@ class FileManager(logClass):
 
     @log_event
     def limpiar_archivos_procesados(self):
+        """Moves processed files to the backup directory.
+
+        Clears out processed files from the devices directory and moves them to a backup directory with a timestamped folder name.
+        """
         fecha_archivo = str(datetime.datetime.now().strftime("%d%m%y%H%M%S"))
         self.ruta_destino = os.path.join(self.ruta_backups, fecha_archivo)
         os.makedirs(self.ruta_destino, exist_ok=True)
@@ -51,13 +71,30 @@ class FileManager(logClass):
             shutil.move(ruta_archivo_origen, ruta_archivo_destino)
 
 
-# Subclase específica para la gestión de archivos de dispositivos
+# Specific subclass for managing device file handling
 class DeviceFileManager(FileManager):
+    """Manages device-specific file operations.
+
+    :param FileManager: Class providing file management functionality.
+    :type FileManager: class
+
+    This class extends FileManager to handle device-specific file operations such as simulating data, generating reports,
+    and managing disconnections.
+    """
+
     def __init__(self, ruta_preferencia: str):
         super().__init__(ruta_preferencia)
 
     @log_event
     def simular_datos(self, cantidad_archivos: int):
+        """Simulates data for a specified number of files.
+
+        :param cantidad_archivos: The number of files to simulate data for (random number)
+        :type cantidad_archivos: int
+
+        This function simulates data for the specified number of files by generating random mission names, dates, device types,
+        and states. It calculates a hash value for each simulated file and saves them in the devices directory.
+        """
         for _ in range(cantidad_archivos):
             nombre_mision = random.choice(constants.proyectos)
             fecha = datetime.datetime.now().strftime("%d%m%y%H%M%S")
@@ -85,6 +122,19 @@ class DeviceFileManager(FileManager):
     def calcular_hash(
         fecha: str, mision: str, tipo_dispositivo: str, estado_dispositivo: str
     ):
+        """Calculates the hash value for given parameters.
+
+        :param fecha: The date.
+        :type fecha: str
+        :param mision: The mission name.
+        :type mision: str
+        :param tipo_dispositivo: The device type.
+        :type tipo_dispositivo: str
+        :param estado_dispositivo: The device state.
+        :type estado_dispositivo: str
+        :return: The calculated hash value.
+        :rtype: str
+        """
         if mision != "UNKN":
             datos_para_hash = (
                 f"{fecha}{mision}{tipo_dispositivo}{estado_dispositivo}".encode("utf-8")
@@ -94,6 +144,11 @@ class DeviceFileManager(FileManager):
 
     @log_event
     def generar_reportes(self):
+        """Generates reports based on device events and disconnections.
+
+        This function generates reports based on device events and disconnections by analyzing events and managing disconnections.
+        It prints the reports to the console and saves them as JSON files.
+        """
         reporte_eventos = self.analizar_eventos()
         reporte_desconexiones = self.gestionar_desconexiones()
 
@@ -117,6 +172,11 @@ class DeviceFileManager(FileManager):
 
     @log_event
     def generar_tablero_de_control(self):
+        """Generates a control dashboard based on device events and disconnections.
+
+        This function generates a control dashboard based on device events and disconnections by analyzing events and managing disconnections.
+        It saves the generated control dashboard as a JSON file in the backups directory.
+        """
         reporte_eventos = self.analizar_eventos()
         reporte_desconexiones = self.gestionar_desconexiones()
 
@@ -132,6 +192,15 @@ class DeviceFileManager(FileManager):
             json.dump(tablero_de_control, archivo)
 
     def analizar_eventos(self):
+        """Analyzes device events and counts occurrences of different states.
+
+        :return: A dictionary containing the count of each state.
+        :rtype: dict
+
+        This function analyzes device events by reading device files from the devices directory.
+        It counts the occurrences of different states ('excellent', 'good', 'warning', 'faulty', 'killed', 'unknown')
+        and returns a dictionary containing the count of each state.
+        """
         archivos_dispositivos = os.listdir(self.ruta_devices)
         eventos = {
             "excellent": 0,
@@ -156,6 +225,15 @@ class DeviceFileManager(FileManager):
         return {"eventos": eventos}
 
     def gestionar_desconexiones(self):
+        """Manages disconnections and counts occurrences of unknown state.
+
+        :return: A dictionary containing the count of unknown state disconnections for each device.
+        :rtype: dict
+
+        This function manages disconnections by reading device files from the devices directory.
+        It counts the occurrences of the unknown state in each device file and returns a dictionary
+        containing the count of unknown state disconnections for each device.
+        """
         archivos_dispositivos = os.listdir(self.ruta_devices)
         desconexiones = {"desconexiones": {}}
 
@@ -173,13 +251,32 @@ class DeviceFileManager(FileManager):
         return desconexiones
 
 
-# Clase principal
+# Main Class
 class Apolo11Simulator(DeviceFileManager, logClass):
+    """Simulates the operation of the Apollo 11 devices.
+
+    :param DeviceFileManager: Class providing device file management functionality.
+    :type DeviceFileManager: class
+    :param logClass: Class providing logging functionality.
+    :type logClass: class
+    """
+
     def __init__(self, ruta_preferencia: str):
+        """Initializes the class.
+
+        :param ruta_preferencia: The preferred path for file operations.
+        :type ruta_preferencia: str
+        """
         super().__init__(ruta_preferencia)
         self.logger.info("Initializing...")
 
     def ejecutar_simulacion(self):
+        """Executes the simulation loop.
+
+        This method runs the simulation loop indefinitely. In each iteration, it simulates device data,
+        generates reports, cleans processed files, and generates a control dashboard. It then waits for
+        a predefined iteration time before starting the next iteration.
+        """
         while True:
             self.simular_datos(random.choice(constants.cantidad_archivos))
             self.generar_reportes()
