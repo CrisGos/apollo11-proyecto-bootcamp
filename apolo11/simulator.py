@@ -11,8 +11,14 @@ from apolo11.base.log import logClass
 from apolo11.configs import constants
 
 
-# Decorador para el registro de eventos
+# Event Logger Decorator
 def log_event(func):
+    """This function defines within a decorator the process that the code is undergoing in order to present it to the user.
+
+    :param func: _description_
+    :type func: _type_
+    """
+
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         args[0].logger.info(f"Event: {func.__name__}")
