@@ -22,7 +22,7 @@ def log_event(func):
 
 
 # Clase base abstracta para la gestión de archivos
-class FileManager:
+class FileManager(logClass):
     def __init__(self, ruta_preferencia: str):
         self.ruta_preferencia = pathlib.Path(ruta_preferencia)
         self.ruta_devices = os.path.join(ruta_preferencia, "devices")
@@ -180,13 +180,3 @@ class Apolo11Simulator(DeviceFileManager, logClass):
             self.limpiar_archivos_procesados()
             self.generar_tablero_de_control()
             time.sleep(constants.tiempo_iteracion)
-
-
-# Función principal
-def main():
-    instancia = Apolo11Simulator("./simulation")
-    instancia.ejecutar_simulacion()
-
-
-if __name__ == "__main__":
-    main()
