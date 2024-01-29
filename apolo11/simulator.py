@@ -59,7 +59,8 @@ class FileManager(logClass):
     def limpiar_archivos_procesados(self):
         """Moves processed files to the backup directory.
 
-        Clears out processed files from the devices directory and moves them to a backup directory with a timestamped folder name.
+        Clears out processed files from the devices directory and moves them
+        to a backup directory with a timestamped folder name.
         """
         fecha_archivo = str(datetime.datetime.now().strftime("%d%m%y%H%M%S"))
         self.ruta_destino = os.path.join(self.ruta_backups, fecha_archivo)
@@ -78,7 +79,8 @@ class DeviceFileManager(FileManager):
     :param FileManager: Class providing file management functionality.
     :type FileManager: class
 
-    This class extends FileManager to handle device-specific file operations such as simulating data, generating reports,
+    This class extends FileManager to handle device-specific file
+    operations such as simulating data, generating reports,
     and managing disconnections.
     """
 
@@ -89,11 +91,14 @@ class DeviceFileManager(FileManager):
     def simular_datos(self, cantidad_archivos: int):
         """Simulates data for a specified number of files.
 
-        :param cantidad_archivos: The number of files to simulate data for (random number)
+        :param cantidad_archivos: The number of files to simulate
+        data for (random number)
         :type cantidad_archivos: int
 
-        This function simulates data for the specified number of files by generating random mission names, dates, device types,
-        and states. It calculates a hash value for each simulated file and saves them in the devices directory.
+        This function simulates data for the specified number of files by generating
+        random mission names, dates, device types, and states.
+        It calculates a hash value for each simulated file and saves them
+        in the devices directory.
         """
         for _ in range(cantidad_archivos):
             nombre_mision = random.choice(constants.proyectos)
@@ -146,7 +151,8 @@ class DeviceFileManager(FileManager):
     def generar_reportes(self):
         """Generates reports based on device events and disconnections.
 
-        This function generates reports based on device events and disconnections by analyzing events and managing disconnections.
+        This function generates reports based on device events and
+        disconnections by analyzing events and managing disconnections.
         It prints the reports to the console and saves them as JSON files.
         """
         reporte_eventos = self.analizar_eventos()
@@ -174,7 +180,8 @@ class DeviceFileManager(FileManager):
     def generar_tablero_de_control(self):
         """Generates a control dashboard based on device events and disconnections.
 
-        This function generates a control dashboard based on device events and disconnections by analyzing events and managing disconnections.
+        This function generates a control dashboard based on device events and
+        disconnections by analyzing events and managing disconnections.
         It saves the generated control dashboard as a JSON file in the backups directory.
         """
         reporte_eventos = self.analizar_eventos()
