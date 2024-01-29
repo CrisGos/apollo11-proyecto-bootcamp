@@ -286,7 +286,10 @@ class Apolo11Simulator(DeviceFileManager, logClass):
         """
         while True:
             self.simular_datos(random.choice(constants.cantidad_archivos))
+            time.sleep(constants.time_beetween_process)
             self.generar_reportes()
+            time.sleep(constants.time_beetween_process)
             self.limpiar_archivos_procesados()
+            time.sleep(constants.time_beetween_process)
             self.generar_tablero_de_control()
             time.sleep(constants.tiempo_iteracion)
